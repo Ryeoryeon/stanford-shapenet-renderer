@@ -14,7 +14,7 @@ parser.add_argument('obj', type=str,
                     help='Path to the obj file to be rendered.')
 parser.add_argument('--output_folder', type=str, default='/tmp',
                     help='The path the output will be dumped to.')
-parser.add_argument('--scale', type=float, default=1,
+parser.add_argument('--scale', type=float, default=0.999,
                     help='Scaling factor applied to model. Depends on size of mesh.')
 parser.add_argument('--remove_doubles', type=bool, default=True,
                     help='Remove double vertices to improve mesh quality.')
@@ -127,8 +127,8 @@ lamp_data.shadow_method = 'RAY_SHADOW'
 lamp_object = bpy.data.objects.new(name="New Lamp", object_data=lamp_data)
 
 # Place lamp to a specified location
-lamp_object.location = (-0.52, 3, 0.914)
-#lamp_object.location = (-1.49, 2.11, 0.914)
+#lamp_object.location = (-0.52, 3, 0.914)
+lamp_object.location = (-1.49, 2.11, 0.914)
 
 # Link lamp object to the scene so it'll appear in this scene
 scene.objects.link(lamp_object)
@@ -163,8 +163,8 @@ def parent_obj_to_camera(b_camera):
     return b_empty
 
 
-scene.render.resolution_x = 1000
-scene.render.resolution_y = 1000
+scene.render.resolution_x = 256
+scene.render.resolution_y = 256
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 cam = scene.objects['Camera']
