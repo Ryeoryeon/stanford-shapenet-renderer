@@ -107,27 +107,54 @@ for object in bpy.context.scene.objects:
         bpy.context.object.modifiers["EdgeSplit"].split_angle = 1.32645
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="EdgeSplit")
 
+'''
 # Make light just directional, disable shadows.
 lamp = bpy.data.lamps['Lamp']
-lamp.type = 'SUN'
-lamp.shadow_method = 'NOSHADOW'
+lamp.type = 'SUN' # 원래 설정은 SUN
+lamp.shadow_method = 'NOSHADOW' # RAY_SHADOW & NOSHADOW
 # Possibly disable specular shading:
 lamp.use_specular = False
+'''
 
+scene = bpy.context.scene
+
+###
+# Create new lamp datablock
+lamp_data = bpy.data.lamps.new(name="New Lamp", type='POINT')
+lamp_data.shadow_method = 'RAY_SHADOW'
+
+# Create new object with our lamp datablock
+lamp_object = bpy.data.objects.new(name="New Lamp", object_data=lamp_data)
+
+# Place lamp to a specified location
+lamp_object.location = (-0.52, 3, 0.914)
+#lamp_object.location = (-1.49, 2.11, 0.914)
+
+# Link lamp object to the scene so it'll appear in this scene
+scene.objects.link(lamp_object)
+
+# And finally select it make active
+lamp_object.select = True
+scene.objects.active = lamp_object
+###
+
+# 보조 조명
+'''
 # Add another light source so stuff facing away from light is not completely dark
 bpy.ops.object.lamp_add(type='SUN')
 lamp2 = bpy.data.lamps['Sun']
-lamp2.shadow_method = 'NOSHADOW'
+lamp2.shadow_method = 'NOSHADOW' # 옵션 변경시켜도 큰 차이 X
 lamp2.use_specular = False
 lamp2.energy = 0.015
 bpy.data.objects['Sun'].rotation_euler = bpy.data.objects['Lamp'].rotation_euler
 bpy.data.objects['Sun'].rotation_euler[0] += 180
+'''
 
 
 def parent_obj_to_camera(b_camera):
     origin = (0, 0, 0)
     b_empty = bpy.data.objects.new("Empty", None)
-    b_empty.location = origin
+    b_empty.location = origin;
     b_camera.parent = b_empty  # setup parenting
 
     scn = bpy.context.scene
@@ -136,9 +163,8 @@ def parent_obj_to_camera(b_camera):
     return b_empty
 
 
-scene = bpy.context.scene
-scene.render.resolution_x = 600
-scene.render.resolution_y = 600
+scene.render.resolution_x = 1000
+scene.render.resolution_y = 1000
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 cam = scene.objects['Camera']
