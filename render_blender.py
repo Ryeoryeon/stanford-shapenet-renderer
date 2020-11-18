@@ -6,6 +6,58 @@
 #
 
 import argparse, sys, os
+import bpy
+import numpy as np
+from mathutils import Vector
+scene = bpy.context.scene
+
+ob = bpy.context.object
+
+def get_max(bound_box):
+	max_x = max([bound_box[i][0] for i in range(0, 8)])
+	max_y = max([bound_box[i][1] for i in range(0, 8)])
+	max_z = max([bound_box[i][2] for i in range(0, 8)])
+	return Vector((max_x, max_y, max_z))
+
+def get_min(bound_box):
+	min_x = min([bound_box[i][0] for i in range(0, 8)])
+	min_y = min([bound_box[i][1] for i in range(0, 8)])
+	min_z = min([bound_box[i][2] for i in range(0, 8)])
+	return Vector((min_x, min_y, min_z))
+
+def get_center(bound_box):
+    center_x = (sum([bound_box[i][0] for i in range(0, 8)]))/8.0
+    center_y = (sum([bound_box[i][1] for i in range(0, 8)]))/8.0
+    center_z = (sum([bound_box[i][2] for i in range(0, 8)]))/8.0
+    return Vector((center_x, center_y, center_z))
+
+def get_max_distance(max_coord, min_coord):
+    dist = (max_coord.x - min_coord.x)**2
+    dist += (max_coord.y - min_coord.y)**2
+    dist += (max_coord.z - min_coord.z)**2
+    dist = np.sqrt(dist)
+    return dist
+
+'''
+print(get_max(ob.bound_box))
+print(get_min(ob.bound_box))
+print(get_center(ob.bound_box))
+
+'''
+
+max_coord = get_max(ob.bound_box)
+min_coord = get_min(ob.bound_box)
+
+# 바운딩 박스의 모든 좌표 확인하기
+for i in range(0, 8):
+    for j in range(0, 3):
+        print(ob.bound_box[i][j])
+    print('\n')
+
+bounding_max_dist = get_max_distance(max_coord, min_coord)
+#print(bounding_max_dist)
+
+scale_default = 3.43 / bounding_max_dist # 잘 조절해보자
 
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
 parser.add_argument('--views', type=int, default=30,
@@ -14,7 +66,7 @@ parser.add_argument('obj', type=str,
                     help='Path to the obj file to be rendered.')
 parser.add_argument('--output_folder', type=str, default='/tmp',
                     help='The path the output will be dumped to.')
-parser.add_argument('--scale', type=float, default=0.999,
+parser.add_argument('--scale', type=float, default=scale_default,
                     help='Scaling factor applied to model. Depends on size of mesh.')
 parser.add_argument('--remove_doubles', type=bool, default=True,
                     help='Remove double vertices to improve mesh quality.')
@@ -29,8 +81,6 @@ parser.add_argument('--format', type=str, default='PNG',
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 args = parser.parse_args(argv)
-
-import bpy
 
 # Set up rendering of depth map.
 bpy.context.scene.use_nodes = True
@@ -68,6 +118,7 @@ else:
 
 scale_normal = tree.nodes.new(type="CompositorNodeMixRGB")
 scale_normal.blend_type = 'MULTIPLY'
+
 # scale_normal.use_alpha = True
 scale_normal.inputs[2].default_value = (0.5, 0.5, 0.5, 1)
 links.new(render_layers.outputs['Normal'], scale_normal.inputs[1])
@@ -81,6 +132,7 @@ links.new(scale_normal.outputs[0], bias_normal.inputs[1])
 normal_file_output = tree.nodes.new(type="CompositorNodeOutputFile")
 normal_file_output.label = 'Normal Output'
 links.new(bias_normal.outputs[0], normal_file_output.inputs[0])
+
 
 albedo_file_output = tree.nodes.new(type="CompositorNodeOutputFile")
 albedo_file_output.label = 'Albedo Output'
@@ -115,8 +167,7 @@ lamp.shadow_method = 'NOSHADOW' # RAY_SHADOW & NOSHADOW
 # Possibly disable specular shading:
 lamp.use_specular = False
 '''
-
-scene = bpy.context.scene
+#scene = bpy.context.scene
 
 ###
 # Create new lamp datablock
@@ -163,10 +214,14 @@ def parent_obj_to_camera(b_camera):
     return b_empty
 
 
-scene.render.resolution_x = 256
-scene.render.resolution_y = 256
+scene.render.resolution_x = 1000
+scene.render.resolution_y = 1000
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
+
+#bpy.data.scenes["Scene"].render.bake_normal_space = 'TANGENT'
+#scene.render.bake_normal_space = 'WORLD'
+
 cam = scene.objects['Camera']
 cam.location = (0, 1, 0.6)
 cam_constraint = cam.constraints.new(type='TRACK_TO')
@@ -178,6 +233,16 @@ cam_constraint.target = b_empty
 model_identifier = os.path.split(os.path.split(args.obj)[0])[1]
 fp = os.path.join(args.output_folder, model_identifier, model_identifier)
 scene.render.image_settings.file_format = 'PNG'  # set output format to .png
+
+#탄젠트냐 오브젝트냐 월드냐 기준으로
+'''
+탄젠트는.. 그 표면에 수직한 애의 상대 방향을 하겠다는거예요.
+그래서 컬러피커를 해봤자 저 서피스의 탄젠트 방향에 대해서 구하고 있어을 수도 있겠다.. 
+(탄젠트냐 오브젝트냐 월드냐 셋중 하난데.. 문제는 어쨌든 월드로 저장이 되어야 함)
+이걸 잘 찾아보세요!
+
+월드 방향으로 나와야 할거임
+'''
 
 from math import radians
 
