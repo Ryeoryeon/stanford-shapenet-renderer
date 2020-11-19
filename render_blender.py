@@ -37,16 +37,12 @@ def get_max_distance(max_coord, min_coord):
     dist = np.sqrt(dist)
     return dist
 
-# translation
-'''
-def translation(x, y, z):
-    from mathutils import Matrix
-    matrix = Matrix.Translation((x, y, z))
-    mesh_unique = set(obj.data for obj in bpy.context.selected_objects)
-    for mesh in mesh_unique:
-        mesh.transform(matrix)
-        mesh.update()
-'''
+def get_max_distance_nonvector(max_x, min_x, max_y, min_y, max_z, min_z):
+    dist = (max_x - min_x)**2
+    dist += (max_y - min_y)**2
+    dist += (max_z - min_z)**2
+    dist = np.sqrt(dist)
+    return dist
 
 def translation(x, y, z):
     meshes = bpy.data.meshes
@@ -55,21 +51,16 @@ def translation(x, y, z):
         for vertex in mesh.vertices:
             vertex.co += Vector((x, y, z))
 
-'''
-print(get_max(ob.bound_box))
-print(get_min(ob.bound_box))
-print(get_center(ob.bound_box))
-
-'''
-
 # 바운딩 박스의 모든 좌표 확인하기
-
 '''
 for i in range(0, 8):
     for j in range(0, 3):
         print(ob.bound_box[i][j])
     print('\n')
+'''
 
+# 모든 점의 좌표 확인하기
+'''
 meshes = bpy.data.meshes
 for mesh in meshes:
     for vertex in mesh.vertices:
@@ -77,12 +68,9 @@ for mesh in meshes:
     print('\n')
 '''
 
-'''
-bounding_max_dist = get_max_distance(max_coord, min_coord)
-print(bounding_max_dist)
-'''
-bounding_max_dist = 3.46
-scale_default = 3.45 / bounding_max_dist # 잘 조절해보자
+# 원래 위치
+
+scale_default = 1 / bounding_max_dist # 잘 조절해보자
 
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
 parser.add_argument('--views', type=int, default=30,
@@ -103,7 +91,6 @@ parser.add_argument('--color_depth', type=str, default='8',
                     help='Number of bit per channel used for output. Either 8 or 16.')
 parser.add_argument('--format', type=str, default='PNG',
                     help='Format of files generated. Either PNG or OPEN_EXR')
-
 argv = sys.argv[sys.argv.index("--") + 1:]
 args = parser.parse_args(argv)
 
@@ -256,35 +243,37 @@ min_z = 99999
 meshes = bpy.data.meshes
 
 # 바운딩 박스 큐브 생성을 위해 가장 큰/작은 x,y,z좌표 구하기
+# 0.9 이상이거나 -0.9 이하인 것은 더미 데이터로 추정됨..?
 for mesh in meshes:
     for vertex in mesh.vertices:
-        if(vertex.co.x > max_x):
+        if(vertex.co.x > max_x and vertex.co.x<0.9):
             max_x = vertex.co.x
-        if(vertex.co.x < min_x):
+        if(vertex.co.x < min_x and vertex.co.x>-0.9):
             min_x = vertex.co.x
-        if(vertex.co.y > max_y):
+        if(vertex.co.y > max_y and vertex.co.y<0.9):
             max_y = vertex.co.y
-        if(vertex.co.y < min_y):
+        if(vertex.co.y < min_y and vertex.co.y>-0.9):
             min_y = vertex.co.y
-        if(vertex.co.z > max_z):
+        if(vertex.co.z > max_z and vertex.co.z<0.9):
             max_z = vertex.co.z
-        if(vertex.co.z < min_z):
+        if(vertex.co.z < min_z and vertex.co.z>-0.9):
             min_z = vertex.co.z
 
+'''
+for mesh in meshes:
+    for vertex in mesh.vertices:
+        if(vertex.co.x > 0.7):
+            print(vertex.co.x)
 #max_coord = get_max(ob.bound_box)
 #min_coord = get_min(ob.bound_box)
+'''
 
-max_coord = Vector((max_x, max_y, max_z))
-min_coord = Vector((min_x, min_y, min_z))
+print(max_x)
+print(min_x)
+print(max_y)
+print(min_y)
 
-bounding_max_dist = get_max_distance(max_coord, min_coord)
-print("MAX_COORD")
-print(max_coord)
-
-print("MIN_COORD")
-print(min_coord)
-
-print("MAX_DIST")
+bounding_max_dist = get_max_distance_nonvector(max_x, min_x, max_y, min_y, max_z, min_z)
 print(bounding_max_dist)
 
 # '(0,0,0) - bounding box의 중심'만큼 translation
@@ -292,12 +281,9 @@ print(bounding_max_dist)
 center_x = (max_x + min_x)/2
 center_y = (max_y + min_y)/2
 center_z = (max_z + min_z)/2
-bound_box_center = Vector((center_x,center_y,center_z))
-print("BOUND_BOX_CENTER")
-print(bound_box_center)
-translation(-(bound_box_center.x),-(bound_box_center.y),-(bound_box_center.z)) # scene 생성 뒤에 이동하지 않으면 반영 X
 
-obj
+print("BOUND_BOX_CENTER")
+translation(-center_x,-center_y,-center_z) # scene 생성 뒤에 이동하지 않으면 반영 X
 
 #bpy.data.scenes["Scene"].render.bake_normal_space = 'TANGENT'
 #scene.render.bake_normal_space = 'WORLD'
