@@ -10,7 +10,6 @@ import bpy
 import numpy as np
 from mathutils import Vector
 scene = bpy.context.scene
-
 ob = bpy.context.object
 
 def get_max(bound_box):
@@ -63,20 +62,27 @@ print(get_center(ob.bound_box))
 
 '''
 
-max_coord = get_max(ob.bound_box)
-min_coord = get_min(ob.bound_box)
-
 # 바운딩 박스의 모든 좌표 확인하기
+
+'''
 for i in range(0, 8):
     for j in range(0, 3):
         print(ob.bound_box[i][j])
     print('\n')
 
+meshes = bpy.data.meshes
+for mesh in meshes:
+    for vertex in mesh.vertices:
+        print(vertex.co)
+    print('\n')
+'''
 
+'''
 bounding_max_dist = get_max_distance(max_coord, min_coord)
-#print(bounding_max_dist)
-
-scale_default = 3.43 / bounding_max_dist # 잘 조절해보자
+print(bounding_max_dist)
+'''
+bounding_max_dist = 3.46
+scale_default = 3.45 / bounding_max_dist # 잘 조절해보자
 
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
 parser.add_argument('--views', type=int, default=30,
@@ -238,9 +244,60 @@ scene.render.resolution_y = 1000
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 
+max_x = 0
+min_x = 99999
+
+max_y = 0
+min_y = 99999
+
+max_z = 0
+min_z = 99999
+
+meshes = bpy.data.meshes
+
+# 바운딩 박스 큐브 생성을 위해 가장 큰/작은 x,y,z좌표 구하기
+for mesh in meshes:
+    for vertex in mesh.vertices:
+        if(vertex.co.x > max_x):
+            max_x = vertex.co.x
+        if(vertex.co.x < min_x):
+            min_x = vertex.co.x
+        if(vertex.co.y > max_y):
+            max_y = vertex.co.y
+        if(vertex.co.y < min_y):
+            min_y = vertex.co.y
+        if(vertex.co.z > max_z):
+            max_z = vertex.co.z
+        if(vertex.co.z < min_z):
+            min_z = vertex.co.z
+
+#max_coord = get_max(ob.bound_box)
+#min_coord = get_min(ob.bound_box)
+
+max_coord = Vector((max_x, max_y, max_z))
+min_coord = Vector((min_x, min_y, min_z))
+
+bounding_max_dist = get_max_distance(max_coord, min_coord)
+print("MAX_COORD")
+print(max_coord)
+
+print("MIN_COORD")
+print(min_coord)
+
+print("MAX_DIST")
+print(bounding_max_dist)
+
 # '(0,0,0) - bounding box의 중심'만큼 translation
-bound_box_center = get_center(ob.bound_box)
+#bound_box_center = get_center(ob.bound_box)
+center_x = (max_x + min_x)/2
+center_y = (max_y + min_y)/2
+center_z = (max_z + min_z)/2
+bound_box_center = Vector((center_x,center_y,center_z))
+print("BOUND_BOX_CENTER")
+print(bound_box_center)
 translation(-(bound_box_center.x),-(bound_box_center.y),-(bound_box_center.z)) # scene 생성 뒤에 이동하지 않으면 반영 X
+
+obj
 
 #bpy.data.scenes["Scene"].render.bake_normal_space = 'TANGENT'
 #scene.render.bake_normal_space = 'WORLD'
