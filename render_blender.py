@@ -68,10 +68,6 @@ for mesh in meshes:
     print('\n')
 '''
 
-# 원래 위치
-
-scale_default = 1 / bounding_max_dist # 잘 조절해보자
-
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
 parser.add_argument('--views', type=int, default=30,
                     help='number of views to be rendered')
@@ -79,7 +75,7 @@ parser.add_argument('obj', type=str,
                     help='Path to the obj file to be rendered.')
 parser.add_argument('--output_folder', type=str, default='/tmp',
                     help='The path the output will be dumped to.')
-parser.add_argument('--scale', type=float, default=scale_default,
+parser.add_argument('--scale', type=float, default=1,
                     help='Scaling factor applied to model. Depends on size of mesh.')
 parser.add_argument('--remove_doubles', type=bool, default=True,
                     help='Remove double vertices to improve mesh quality.')
@@ -128,6 +124,8 @@ else:
 
   links.new(map.outputs[0], depth_file_output.inputs[0])
 
+#bpy.ops.object.bake(type='NORMAL', use_selected_to_active=True, normal_space='OBJECT')
+
 scale_normal = tree.nodes.new(type="CompositorNodeMixRGB")
 scale_normal.blend_type = 'MULTIPLY'
 
@@ -140,6 +138,12 @@ bias_normal.blend_type = 'ADD'
 # bias_normal.use_alpha = True
 bias_normal.inputs[2].default_value = (0.5, 0.5, 0.5, 0)
 links.new(scale_normal.outputs[0], bias_normal.inputs[1])
+
+'''
+# 어차피 선언부터 안 되는 코드
+normal_node = tree.nodes.new(type="ShaderNodeNormalMap")
+normal_node.space = 'WORLD'
+'''
 
 normal_file_output = tree.nodes.new(type="CompositorNodeOutputFile")
 normal_file_output.label = 'Normal Output'
@@ -155,6 +159,73 @@ bpy.data.objects['Cube'].select = True
 bpy.ops.object.delete()
 
 bpy.ops.import_scene.obj(filepath=args.obj)
+
+###
+# 바운딩 박스 큐브 생성을 위해 가장 큰/작은 x,y,z좌표 구하기
+# 0.9 이상이거나 -0.9 이하인 것은 더미 데이터로 추정됨..?
+# import_scene.obj 이후에 들어가야 하는 코드
+
+max_x = 0
+min_x = 99999
+
+max_y = 0
+min_y = 99999
+
+max_z = 0
+min_z = 99999
+
+meshes = bpy.data.meshes
+
+for mesh in meshes:
+    for vertex in mesh.vertices:
+        if(vertex.co.x > max_x and vertex.co.x<0.95):
+            max_x = vertex.co.x
+        if(vertex.co.x < min_x and vertex.co.x>-0.95):
+            min_x = vertex.co.x
+        if(vertex.co.y > max_y and vertex.co.y<0.95):
+            max_y = vertex.co.y
+        if(vertex.co.y < min_y and vertex.co.y>-0.95):
+            min_y = vertex.co.y
+        if(vertex.co.z > max_z and vertex.co.z<0.95):
+            max_z = vertex.co.z
+        if(vertex.co.z < min_z and vertex.co.z>-0.95):
+            min_z = vertex.co.z
+
+'''
+for mesh in meshes:
+    for vertex in mesh.vertices:
+        if(vertex.co.x > 0.7):
+            print(vertex.co.x)
+#max_coord = get_max(ob.bound_box)
+#min_coord = get_min(ob.bound_box)
+'''
+
+print("COORDINATE")
+print(max_x, max_y, max_z)
+print(min_x, min_y, min_z)
+
+bounding_max_dist = get_max_distance_nonvector(max_x, min_x, max_y, min_y, max_z, min_z)
+print(bounding_max_dist)
+# dist가 클수록 scale값이 크게 조정되도록
+scale_goal = bounding_max_dist
+#scale_goal = 0.995 / bounding_max_dist
+print("GOAL")
+print(scale_goal)
+
+obj
+
+# '(0,0,0) - bounding box의 중심'만큼 translation
+#bound_box_center = get_center(ob.bound_box)
+center_x = (max_x + min_x)/2
+center_y = (max_y + min_y)/2
+center_z = (max_z + min_z)/2
+
+print("BOUND_BOX_CENTER")
+translation(-center_x,-center_y,-center_z) # scene 생성 뒤에 이동하지 않으면 반영 X
+
+# scale값 default값 대신에 재설정 해주기
+args.scale = scale_goal
+
 for object in bpy.context.scene.objects:
     if object.name in ['Camera', 'Lamp']:
         continue
@@ -179,6 +250,7 @@ lamp.shadow_method = 'NOSHADOW' # RAY_SHADOW & NOSHADOW
 # Possibly disable specular shading:
 lamp.use_specular = False
 '''
+
 #scene = bpy.context.scene
 
 ###
@@ -231,59 +303,8 @@ scene.render.resolution_y = 1000
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 
-max_x = 0
-min_x = 99999
-
-max_y = 0
-min_y = 99999
-
-max_z = 0
-min_z = 99999
-
-meshes = bpy.data.meshes
-
-# 바운딩 박스 큐브 생성을 위해 가장 큰/작은 x,y,z좌표 구하기
-# 0.9 이상이거나 -0.9 이하인 것은 더미 데이터로 추정됨..?
-for mesh in meshes:
-    for vertex in mesh.vertices:
-        if(vertex.co.x > max_x and vertex.co.x<0.9):
-            max_x = vertex.co.x
-        if(vertex.co.x < min_x and vertex.co.x>-0.9):
-            min_x = vertex.co.x
-        if(vertex.co.y > max_y and vertex.co.y<0.9):
-            max_y = vertex.co.y
-        if(vertex.co.y < min_y and vertex.co.y>-0.9):
-            min_y = vertex.co.y
-        if(vertex.co.z > max_z and vertex.co.z<0.9):
-            max_z = vertex.co.z
-        if(vertex.co.z < min_z and vertex.co.z>-0.9):
-            min_z = vertex.co.z
-
-'''
-for mesh in meshes:
-    for vertex in mesh.vertices:
-        if(vertex.co.x > 0.7):
-            print(vertex.co.x)
-#max_coord = get_max(ob.bound_box)
-#min_coord = get_min(ob.bound_box)
-'''
-
-print(max_x)
-print(min_x)
-print(max_y)
-print(min_y)
-
-bounding_max_dist = get_max_distance_nonvector(max_x, min_x, max_y, min_y, max_z, min_z)
-print(bounding_max_dist)
-
-# '(0,0,0) - bounding box의 중심'만큼 translation
-#bound_box_center = get_center(ob.bound_box)
-center_x = (max_x + min_x)/2
-center_y = (max_y + min_y)/2
-center_z = (max_z + min_z)/2
-
-print("BOUND_BOX_CENTER")
-translation(-center_x,-center_y,-center_z) # scene 생성 뒤에 이동하지 않으면 반영 X
+###
+# 원래 위치 2
 
 #bpy.data.scenes["Scene"].render.bake_normal_space = 'TANGENT'
 #scene.render.bake_normal_space = 'WORLD'
