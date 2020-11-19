@@ -38,6 +38,24 @@ def get_max_distance(max_coord, min_coord):
     dist = np.sqrt(dist)
     return dist
 
+# translation
+'''
+def translation(x, y, z):
+    from mathutils import Matrix
+    matrix = Matrix.Translation((x, y, z))
+    mesh_unique = set(obj.data for obj in bpy.context.selected_objects)
+    for mesh in mesh_unique:
+        mesh.transform(matrix)
+        mesh.update()
+'''
+
+def translation(x, y, z):
+    meshes = bpy.data.meshes
+
+    for mesh in meshes:
+        for vertex in mesh.vertices:
+            vertex.co += Vector((x, y, z))
+
 '''
 print(get_max(ob.bound_box))
 print(get_min(ob.bound_box))
@@ -53,6 +71,7 @@ for i in range(0, 8):
     for j in range(0, 3):
         print(ob.bound_box[i][j])
     print('\n')
+
 
 bounding_max_dist = get_max_distance(max_coord, min_coord)
 #print(bounding_max_dist)
@@ -162,7 +181,7 @@ for object in bpy.context.scene.objects:
 '''
 # Make light just directional, disable shadows.
 lamp = bpy.data.lamps['Lamp']
-lamp.type = 'SUN' # 원래 설정은 SUN
+lamp.type = 'SUN'
 lamp.shadow_method = 'NOSHADOW' # RAY_SHADOW & NOSHADOW
 # Possibly disable specular shading:
 lamp.use_specular = False
@@ -218,6 +237,10 @@ scene.render.resolution_x = 1000
 scene.render.resolution_y = 1000
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
+
+# '(0,0,0) - bounding box의 중심'만큼 translation
+bound_box_center = get_center(ob.bound_box)
+translation(-(bound_box_center.x),-(bound_box_center.y),-(bound_box_center.z)) # scene 생성 뒤에 이동하지 않으면 반영 X
 
 #bpy.data.scenes["Scene"].render.bake_normal_space = 'TANGENT'
 #scene.render.bake_normal_space = 'WORLD'
