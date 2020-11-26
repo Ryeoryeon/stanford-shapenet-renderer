@@ -51,6 +51,7 @@ def translation(x, y, z):
         for vertex in mesh.vertices:
             vertex.co += Vector((x, y, z))
 
+
 # 바운딩 박스의 모든 좌표 확인하기
 '''
 for i in range(0, 8):
@@ -130,6 +131,7 @@ scale_normal = tree.nodes.new(type="CompositorNodeMixRGB")
 scale_normal.blend_type = 'MULTIPLY'
 
 # scale_normal.use_alpha = True
+#scale_normal.inputs[2].default_value = (0.5, 0.5, 0.5, 1)
 scale_normal.inputs[2].default_value = (0.5, 0.5, 0.5, 1)
 links.new(render_layers.outputs['Normal'], scale_normal.inputs[1])
 
@@ -139,11 +141,6 @@ bias_normal.blend_type = 'ADD'
 bias_normal.inputs[2].default_value = (0.5, 0.5, 0.5, 0)
 links.new(scale_normal.outputs[0], bias_normal.inputs[1])
 
-'''
-# 어차피 선언부터 안 되는 코드
-normal_node = tree.nodes.new(type="ShaderNodeNormalMap")
-normal_node.space = 'WORLD'
-'''
 
 normal_file_output = tree.nodes.new(type="CompositorNodeOutputFile")
 normal_file_output.label = 'Normal Output'
@@ -211,8 +208,6 @@ scale_goal = bounding_max_dist
 #scale_goal = 0.995 / bounding_max_dist
 print("GOAL")
 print(scale_goal)
-
-obj
 
 # '(0,0,0) - bounding box의 중심'만큼 translation
 #bound_box_center = get_center(ob.bound_box)
@@ -284,6 +279,33 @@ lamp2.energy = 0.015
 bpy.data.objects['Sun'].rotation_euler = bpy.data.objects['Lamp'].rotation_euler
 bpy.data.objects['Sun'].rotation_euler[0] += 180
 '''
+
+# 노말 시도를 해보자
+
+#bpy.context.area.type = 'VIEW_3D'
+#bpy.context.space_data.viewport_shade = 'SOLID'
+#bpy.context.space_data.use_matcap = True
+
+# matcap 23 is for normals viz at time of writing
+#bpy.context.space_data.matcap_icon = '23'
+
+# set 1 value for Cycles or 3 for BI.
+bpy.context.scene.render.engine = 'CYCLES'
+
+# color picked from normals matcap corner. Better values?
+#bpy.context.scene.world.horizon_color = (0.215861, 0.212231, 0.991102) # 초록이 뚫뚫
+bpy.context.scene.world.horizon_color = (0.215861, 0.991102, 0.212231) #
+
+# perpendicular normals at viewport sky pixels by default
+#bpy.context.space_data.show_world = True
+bpy.context.scene.render.alpha_mode = 'SKY'
+bpy.context.scene.render.bake_normal_space='TANGENT'
+
+# declutter viewport for OpenGL renders
+#bpy.context.space_data.show_only_render = True
+#bpy.context.space_data.show_grease_pencil = False
+#bpy.context.space_data.show_background_images = False
+
 
 
 def parent_obj_to_camera(b_camera):
